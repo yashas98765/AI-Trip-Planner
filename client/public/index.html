@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="theme-color" content="#000000" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <!-- Force browser to never cache -->
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta
+      name="description"
+      content="AI Trip Planner - Your intelligent travel companion"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
+    <title>AI Trip Planner | Plan Your Dream Adventure</title>
+    
+    <!-- CRITICAL: Cache Buster - Change this version to force reload -->
+    <script>
+      // AGGRESSIVE cache clearing - runs on EVERY page load
+      (function() {
+        // Force clear everything on every load
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+          });
+        }
+        
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for(let name of names) {
+              caches.delete(name);
+            }
+          });
+        }
+        
+        // Check version and force reload if needed
+        const CURRENT_VERSION = 'v3.0.0-' + Date.now();
+        const storedVersion = sessionStorage.getItem('app_version');
+        
+        if (!storedVersion || storedVersion !== CURRENT_VERSION) {
+          sessionStorage.setItem('app_version', CURRENT_VERSION);
+          console.log('Loading fresh version: ' + CURRENT_VERSION);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    
+    <!-- CRITICAL: Force scroll BEFORE React loads - prevents ANY caching issues -->
+    <script>
+      (function() {
+        // Unregister all service workers immediately
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+          });
+        }
+        
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for(let name of names) {
+              caches.delete(name);
+            }
+          });
+        }
+
+      })();
+    </script>
+  </body>
+</html>

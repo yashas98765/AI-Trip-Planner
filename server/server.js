@@ -249,8 +249,9 @@ const connectDB = async () => {
   try {
     const mongoOptions = {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
       bufferCommands: false,
     };
 
@@ -335,13 +336,26 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB (optional for development)
-    try {
-      await connectDB();
-    } catch (mongoError) {
-      logger.warn("MongoDB connection failed:", mongoError.message);
-      if (process.env.NODE_ENV === "production") {
-        throw mongoError; // Fail in production if MongoDB is not available
+    // Connect to MongoDB with retries
+    const MAX_RETRIES = 5;
+    let retries = 0;
+    let connected = false;
+    while (retries < MAX_RETRIES && !connected) {
+      try {
+        await connectDB();
+        connected = true;
+      } catch (mongoError) {
+        retries++;
+        logger.warn(`MongoDB connection attempt ${retries}/${MAX_RETRIES} failed: ${mongoError.message}`);
+        if (retries < MAX_RETRIES) {
+          logger.info(`Retrying in 5 seconds...`);
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        } else {
+          logger.error("All MongoDB connection attempts failed.");
+          if (process.env.NODE_ENV === "production") {
+            process.exit(1);
+          }
+        }
       }
     }
 

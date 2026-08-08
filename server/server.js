@@ -335,40 +335,35 @@ process.on("unhandledRejection", (reason, promise) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  try {
-    // Connect to MongoDB with retries
-    const MAX_RETRIES = 5;
-    let retries = 0;
-    let connected = false;
-    while (retries < MAX_RETRIES && !connected) {
-      try {
-        await connectDB();
-        connected = true;
-      } catch (mongoError) {
-        retries++;
-        logger.warn(`MongoDB connection attempt ${retries}/${MAX_RETRIES} failed: ${mongoError.message}`);
-        if (retries < MAX_RETRIES) {
-          logger.info(`Retrying in 5 seconds...`);
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        } else {
-          logger.error("All MongoDB connection attempts failed.");
-          if (process.env.NODE_ENV === "production") {
-            process.exit(1);
-          }
+  // Start HTTP server IMMEDIATELY so Render health check passes right away
+  server.listen(PORT, () => {
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 API: http://localhost:${PORT}/api`);
+    console.log(`✅ Health: http://localhost:${PORT}/api/health\n`);
+  });
+
+  // Connect to MongoDB in background with retries
+  const MAX_RETRIES = 5;
+  let retries = 0;
+  let connected = false;
+  while (retries < MAX_RETRIES && !connected) {
+    try {
+      await connectDB();
+      connected = true;
+    } catch (mongoError) {
+      retries++;
+      logger.warn(`MongoDB connection attempt ${retries}/${MAX_RETRIES} failed: ${mongoError.message}`);
+      if (retries < MAX_RETRIES) {
+        logger.info(`Retrying in 5 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } else {
+        logger.error("All MongoDB connection attempts failed.");
+        if (process.env.NODE_ENV === "production") {
+          process.exit(1);
         }
       }
     }
-
-    // Start HTTP server
-    server.listen(PORT, () => {
-      console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🔗 API: http://localhost:${PORT}/api`);
-      console.log(`✅ Health: http://localhost:${PORT}/api/health\n`);
-    });
-  } catch (error) {
-    logger.error("Failed to start server:", error);
-    process.exit(1);
   }
 };
 

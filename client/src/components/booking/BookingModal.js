@@ -346,7 +346,7 @@ const BookingModal = ({ isOpen, onClose, bookingType, placeDetails = {}, default
     if (['hotel', 'resort'].includes(bookingType) && selectedRoomType) {
       basePrice = selectedRoomType.price * rooms * nights;
     } else if (bookingType === 'package') {
-      basePrice = (Number(safePlaceDetails.basePrice) || 0) * nights;
+      basePrice = Number(safePlaceDetails.basePrice) || 0; // basePrice is already the total trip cost
     } else if (['restaurant', 'cafe'].includes(bookingType)) {
       basePrice = selectedMenuItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     } else if (['car', 'bike', 'bus', 'train', 'flight', 'ship'].includes(bookingType)) {

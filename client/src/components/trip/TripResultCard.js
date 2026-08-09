@@ -32,41 +32,156 @@ const TripResultCard = ({ itinerary, formValues, onViewDetails }) => {
     // Example: window.open(`/api/trips/download-pdf/${tripId}`, '_blank');
   };
 
-  const handleAddTrip = async () => {
-    try {
-      setIsAddingTrip(true);
+  const buildTripData = () => {
+    const destinationStr = itinerary.destination || formValues.destination;
+    const destParts = destinationStr.split(",").map((s) => s.trim());
+    const city = destParts[0] || destinationStr;
+    const country = destParts[1] || destParts[0] || destinationStr;
 
-      // Prepare trip data for saving
-      const tripData = {
-        title: `Trip to ${itinerary.destination || formValues.destination}`,
-        description:
-          itinerary.overview ||
-          `${formValues.duration} day trip to ${
-            itinerary.destination || formValues.destination
-          }`,
-        destination: itinerary.destination || formValues.destination,
-        startDate: formValues.startDate,
-        endDate: formValues.endDate,
-        duration: itinerary.duration,
-        travelers: formValues.travelers,
+    const validActivityTypes = [
+      "attraction",
+      "restaurant",
+      "transport",
+      "accommodation",
+      "activity",
+    ];
+
+    const transformedDays =
+      itinerary.itinerary?.map((day, index) => ({
+        day: day.day || index + 1,
+        date: new Date(
+          new Date(formValues.startDate).getTime() +
+            index * 24 * 60 * 60 * 1000
+        ),
+        title: day.title || "",
+        theme: day.theme || "",
+        activities:
+          day.activities?.map((activity) => {
+            const activityType = validActivityTypes.includes(activity.type)
+              ? activity.type
+              : "activity";
+
+            return {
+              time: activity.time || "",
+              activity:
+                activity.title || activity.activity || activity.name || "",
+              location: {
+                name: activity.location?.name || activity.location || "",
+                address: activity.location?.address || "",
+                coordinates: activity.location?.coordinates || {},
+              },
+              duration: activity.duration || 2,
+              cost: {
+                amount: activity.cost?.amount || 0,
+                currency:
+                  activity.cost?.currency ||
+                  itinerary.totalEstimatedCost?.currency ||
+                  "INR",
+              },
+              description: activity.description || "",
+              type: activityType,
+              bookingRequired: activity.bookingRequired || false,
+            };
+          }) || [],
+        totalCost: {
+          amount: day.totalCost?.amount || 0,
+          currency:
+            day.totalCost?.currency ||
+            itinerary.totalEstimatedCost?.currency ||
+            "INR",
+        },
+      })) || [];
+
+    const validTravelStyles = [
+      "budget",
+      "luxury",
+      "adventure",
+      "relaxation",
+      "cultural",
+    ];
+    const validAccommodationTypes = [
+      "hotel",
+      "hostel",
+      "apartment",
+      "resort",
+    ];
+    const validTransportTypes = ["flight", "train", "bus", "car", "walking"];
+    const validInterests = [
+      "culture",
+      "nature",
+      "food",
+      "adventure",
+      "relaxation",
+      "shopping",
+      "history",
+      "nightlife",
+    ];
+
+    const travelStyle = validTravelStyles.includes(formValues.travelStyle)
+      ? formValues.travelStyle
+      : "budget";
+
+    const accommodation = validAccommodationTypes.includes(
+      formValues.accommodationType
+    )
+      ? formValues.accommodationType
+      : "hotel";
+
+    const transport = validTransportTypes.includes(formValues.transportation)
+      ? [formValues.transportation]
+      : ["flight"];
+
+    const interests = Array.isArray(formValues.interests)
+      ? formValues.interests.filter((interest) =>
+          validInterests.includes(interest)
+        )
+      : [];
+
+    return {
+      title: `Trip to ${city}`,
+      description: `${itinerary.duration}-day trip to ${destinationStr}`,
+      destination: {
+        city: city,
+        country: country,
+        coordinates: {
+          lat: 0,
+          lng: 0,
+        },
+      },
+      preferences: {
         budget: {
           min: itinerary.totalEstimatedCost?.amount || 0,
           max: itinerary.totalEstimatedCost?.amount || 0,
           currency: itinerary.totalEstimatedCost?.currency || "INR",
         },
-        interests: formValues.interests || [],
-        travelStyle: formValues.travelStyle,
-        accommodation: formValues.accommodationType,
-        transport: formValues.transportation ? [formValues.transportation] : [],
-        specialRequests: formValues.specialRequests || "",
-        itinerary: {
-          dailyPlans: itinerary.itinerary || [],
-          recommendations: itinerary.recommendations || {},
-          totalEstimatedCost: itinerary.totalEstimatedCost,
+        duration: parseInt(itinerary.duration) || 1,
+        travelStyle: travelStyle,
+        groupSize: parseInt(formValues.travelers) || 1,
+        interests: interests,
+        accommodation: accommodation,
+        transport: transport,
+      },
+      itinerary: {
+        generatedBy: "AI",
+        generatedAt: new Date(),
+        days: transformedDays,
+        totalCost: {
+          amount: itinerary.totalEstimatedCost?.amount || 0,
+          currency: itinerary.totalEstimatedCost?.currency || "INR",
         },
-        // Generated trips should have status "upcoming"
-        status: "upcoming",
-      };
+        summary: itinerary.overview || "",
+      },
+      startDate: formValues.startDate,
+      endDate: formValues.endDate,
+      status: "upcoming",
+    };
+  };
+
+  const handleAddTrip = async () => {
+    try {
+      setIsAddingTrip(true);
+
+      const tripData = buildTripData();
 
       const response = await tripAPI.createTrip(tripData);
 

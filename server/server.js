@@ -339,6 +339,12 @@ process.on("unhandledRejection", (reason, promise) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
+  // Validate email service configuration
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    logger.warn("⚠️ EMAIL SERVICE WARNING: EMAIL_USER or EMAIL_PASS environment variables are not set. " +
+      "Confirmation emails will fail to send. Please configure them in your .env file or Render Dashboard.");
+  }
+
   // Start HTTP server IMMEDIATELY so Render health check passes right away
   server.listen(PORT, () => {
     console.log(`\n🚀 Server running on http://localhost:${PORT}`);

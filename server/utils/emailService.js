@@ -763,8 +763,91 @@ const sendGasAgencyConfirmation = async (booking) => {
   }
 };
 
+// Send payment receipt email after successful Razorpay payment
+const sendPaymentReceipt = async (userEmail, userName, booking, receiptPDFBuffer) => {
+  try {
+    const bookingRef = booking.bookingReference || 'N/A';
+    const totalAmount = booking.pricing?.totalPrice || booking.totalAmount || 0;
+    const paidAt = booking.paymentDetails?.paidAt
+      ? new Date(booking.paymentDetails.paidAt).toLocaleString('en-IN')
+      : new Date().toLocaleString('en-IN');
+    const paymentId = booking.paymentDetails?.paymentId || 'N/A';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .body { padding: 30px; }
+          .success-badge { background: #d1fae5; color: #065f46; border-radius: 50px; padding: 8px 20px; display: inline-block; font-weight: bold; margin-bottom: 20px; }
+          .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .details-table td { padding: 10px; border-bottom: 1px solid #eee; }
+          .details-table td:first-child { font-weight: bold; color: #374151; width: 40%; }
+          .total-row td { font-size: 18px; font-weight: bold; color: #2563eb; background: #eff6ff; }
+          .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 13px; }
+          .note { background: #fef9c3; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 4px; margin: 20px 0; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Payment Successful!</h1>
+            <p style="margin:8px 0 0;">AI Trip Planner</p>
+          </div>
+          <div class="body">
+            <p>Hi <strong>${userName}</strong>,</p>
+            <p>Your payment has been received successfully. Here are your payment details:</p>
+            <div class="success-badge">🎉 Payment Confirmed</div>
+            <table class="details-table">
+              <tr><td>Booking Reference</td><td>${bookingRef}</td></tr>
+              <tr><td>Payment ID</td><td>${paymentId}</td></tr>
+              <tr><td>Booking Type</td><td>${booking.bookingType || 'N/A'}</td></tr>
+              <tr><td>Paid At</td><td>${paidAt}</td></tr>
+              <tr><td>Payment Method</td><td>Razorpay (Online)</td></tr>
+              <tr class="total-row"><td>Amount Paid</td><td>₹${Number(totalAmount).toLocaleString('en-IN')}</td></tr>
+            </table>
+            <div class="note">
+              📎 Your payment receipt PDF is attached to this email. Please keep it for your records.
+            </div>
+            <p>If you have any questions, feel free to reach out to us.</p>
+            <p>Thank you for choosing <strong>AI Trip Planner</strong>! 🌍</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated email. Please do not reply.</p>
+            <p>© ${new Date().getFullYear()} AI Trip Planner. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: `"AI Trip Planner" <${process.env.EMAIL_USER || 'noreply@aitripplanner.com'}>`,
+      to: userEmail,
+      subject: `✅ Payment Receipt - Booking ${bookingRef}`,
+      html: htmlContent,
+      attachments: receiptPDFBuffer
+        ? [{ filename: `receipt_${bookingRef}.pdf`, content: receiptPDFBuffer, contentType: 'application/pdf' }]
+        : [],
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Payment receipt email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending payment receipt email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendBookingConfirmation,
   sendTripConfirmation,
   sendGasAgencyConfirmation,
+  sendPaymentReceipt,
 };

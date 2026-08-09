@@ -594,7 +594,10 @@ const BookingModal = ({ isOpen, onClose, bookingType, placeDetails = {}, default
 
       await loadRazorpayScript();
 
-      await new Promise((resolve, reject) => {
+      // Get razorpay payment response outside the Promise to handle it properly
+      const razorpayPaymentResponse = await new Promise((resolve, reject) => {
+        let paymentDone = false; // flag to prevent ondismiss from firing after success
+
         const razorpay = new window.Razorpay({
           key: orderData.key,
           amount: orderData.amount,
@@ -603,108 +606,116 @@ const BookingModal = ({ isOpen, onClose, bookingType, placeDetails = {}, default
           description: `${bookingType} booking payment`,
           order_id: orderData.orderId,
           theme: { color: '#2563eb' },
-          handler: async (paymentResponse) => {
-            try {
-              const verificationResponse = await paymentAPI.verifyPayment({
-                ...paymentResponse,
-              });
-
-              if (!verificationResponse.data?.success) {
-                throw new Error(verificationResponse.data?.message || 'Payment verification failed');
-              }
-
-              const bookingData = {
-                bookingType,
-                bookingDetails: {
-                  name: safePlaceDetails.name || 'Booking',
-                  description: safePlaceDetails.description || '',
-                  location: {
-                    address: safePlaceDetails.address || '',
-                    city: safePlaceDetails.city || '',
-                    country: safePlaceDetails.country || 'India',
-                    coordinates: safePlaceDetails.coordinates || { lat: 0, lng: 0 },
-                  },
-                  rating: safePlaceDetails.rating || 0,
-                  contactInfo: {
-                    phone: safePlaceDetails.phone || '',
-                    email: safePlaceDetails.email || '',
-                  },
-                },
-                numberOfGuests: totalGuests,
-                guestDetails: {
-                  adults: Number(formData.adults),
-                  children: Number(formData.children),
-                  infants: Number(formData.infants),
-                },
-                pricing,
-                paymentStatus: 'paid',
-                paymentMethod,
-                paymentDetails: {
-                  gateway: 'razorpay',
-                  orderId: paymentResponse.razorpay_order_id,
-                  paymentId: paymentResponse.razorpay_payment_id,
-                  signature: paymentResponse.razorpay_signature,
-                  paidAt: new Date(),
-                },
-                specialRequests: formData.specialRequests,
-              };
-
-              if (['hotel', 'resort', 'package'].includes(bookingType)) {
-                bookingData.checkInDate = formData.checkInDate;
-                bookingData.checkOutDate = formData.checkOutDate;
-              } else if (['restaurant', 'cafe'].includes(bookingType)) {
-                bookingData.bookingDate = formData.bookingDate;
-                bookingData.bookingTime = formData.bookingTime;
-                if (selectedMenuItems.length > 0) {
-                  bookingData.restaurantDetails = {
-                    orderedItems: selectedMenuItems.map((item) => ({
-                      itemName: item.name,
-                      quantity: item.quantity,
-                      price: item.price,
-                    })),
-                    totalItems: selectedMenuItems.reduce((sum, item) => sum + item.quantity, 0),
-                  };
-                }
-              } else if (['car', 'bike', 'bus', 'train', 'flight', 'ship'].includes(bookingType)) {
-                bookingData.departureDate = formData.departureDate;
-                if (formData.returnDate) {
-                  bookingData.returnDate = formData.returnDate;
-                }
-                bookingData.transportDetails = {
-                  from: { location: formData.from },
-                  to: { location: formData.to },
-                  vehicleType: selectedTransportType ? selectedTransportType.name : (formData.vehicleType || bookingType),
-                  pricePerUnit: selectedTransportType ? selectedTransportType.price : (safePlaceDetails.basePrice || 1000),
-                  features: selectedTransportType ? selectedTransportType.features : [],
-                  capacity: selectedTransportType ? selectedTransportType.capacity : 4,
-                };
-              }
-
-              const bookingResponse = await bookingAPI.createBooking(bookingData);
-              if (!bookingResponse.data?.success) {
-                throw new Error(bookingResponse.data?.message || 'Booking creation failed');
-              }
-
-              toast.success('Booking confirmed! Check your email for the receipt.');
-              setTimeout(() => onClose(), 1000);
-              resolve();
-            } catch (error) {
-              reject(error);
-            }
+          handler: (paymentResponse) => {
+            // Payment successful - resolve with payment details
+            paymentDone = true;
+            resolve(paymentResponse);
           },
           modal: {
-            ondismiss: () => reject(new Error('Payment cancelled by user')),
+            ondismiss: () => {
+              if (!paymentDone) {
+                reject(new Error('Payment cancelled by user'));
+              }
+            },
           },
         });
 
         razorpay.open();
       });
+
+      // Payment succeeded - now verify and create booking
+      const verificationResponse = await paymentAPI.verifyPayment({
+        ...razorpayPaymentResponse,
+      });
+
+      if (!verificationResponse.data?.success) {
+        throw new Error(verificationResponse.data?.message || 'Payment verification failed');
+      }
+
+      const bookingData = {
+        bookingType,
+        bookingDetails: {
+          name: safePlaceDetails.name || 'Booking',
+          description: safePlaceDetails.description || '',
+          location: {
+            address: safePlaceDetails.address || '',
+            city: safePlaceDetails.city || '',
+            country: safePlaceDetails.country || 'India',
+            coordinates: safePlaceDetails.coordinates || { lat: 0, lng: 0 },
+          },
+          rating: safePlaceDetails.rating || 0,
+          contactInfo: {
+            phone: safePlaceDetails.phone || '',
+            email: safePlaceDetails.email || '',
+          },
+        },
+        numberOfGuests: totalGuests,
+        guestDetails: {
+          adults: Number(formData.adults),
+          children: Number(formData.children),
+          infants: Number(formData.infants),
+        },
+        pricing,
+        paymentStatus: 'paid',
+        paymentMethod,
+        paymentDetails: {
+          gateway: 'razorpay',
+          orderId: razorpayPaymentResponse.razorpay_order_id,
+          paymentId: razorpayPaymentResponse.razorpay_payment_id,
+          signature: razorpayPaymentResponse.razorpay_signature,
+          paidAt: new Date(),
+        },
+        specialRequests: formData.specialRequests,
+      };
+
+      if (['hotel', 'resort', 'package'].includes(bookingType)) {
+        bookingData.checkInDate = formData.checkInDate;
+        bookingData.checkOutDate = formData.checkOutDate;
+      } else if (['restaurant', 'cafe'].includes(bookingType)) {
+        bookingData.bookingDate = formData.bookingDate;
+        bookingData.bookingTime = formData.bookingTime;
+        if (selectedMenuItems.length > 0) {
+          bookingData.restaurantDetails = {
+            orderedItems: selectedMenuItems.map((item) => ({
+              itemName: item.name,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+            totalItems: selectedMenuItems.reduce((sum, item) => sum + item.quantity, 0),
+          };
+        }
+      } else if (['car', 'bike', 'bus', 'train', 'flight', 'ship'].includes(bookingType)) {
+        bookingData.departureDate = formData.departureDate;
+        if (formData.returnDate) {
+          bookingData.returnDate = formData.returnDate;
+        }
+        bookingData.transportDetails = {
+          from: { location: formData.from },
+          to: { location: formData.to },
+          vehicleType: selectedTransportType ? selectedTransportType.name : (formData.vehicleType || bookingType),
+          pricePerUnit: selectedTransportType ? selectedTransportType.price : (safePlaceDetails.basePrice || 1000),
+          features: selectedTransportType ? selectedTransportType.features : [],
+          capacity: selectedTransportType ? selectedTransportType.capacity : 4,
+        };
+      }
+
+      const bookingResponse = await bookingAPI.createBooking(bookingData);
+      if (!bookingResponse.data?.success) {
+        throw new Error(bookingResponse.data?.message || 'Booking creation failed');
+      }
+
+      toast.success('🎉 Booking confirmed! Check your email for the receipt.');
+      setTimeout(() => onClose(), 1500);
     } catch (error) {
-      const errData = error.response?.data;
-      const errorMessage = errData?.details
-        ? `${errData.message}: ${errData.details}`
-        : (errData?.message || error.message || 'Payment failed. Please try again.');
-      toast.error(errorMessage, { duration: 8000 });
+      if (error.message === 'Payment cancelled by user') {
+        toast.error('Payment was cancelled.');
+      } else {
+        const errData = error.response?.data;
+        const errorMessage = errData?.details
+          ? `${errData.message}: ${errData.details}`
+          : (errData?.message || error.message || 'Payment failed. Please try again.');
+        toast.error(errorMessage, { duration: 8000 });
+      }
     } finally {
       setProcessingPayment(false);
     }

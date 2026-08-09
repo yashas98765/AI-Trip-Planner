@@ -68,23 +68,20 @@ const createTrip = async (req, res) => {
     // Populate user information
     await trip.populate("user", "name email avatar");
 
-    // Send confirmation email
-    try {
-      const emailResult = await sendTripConfirmation(
-        req.user.email,
-        req.user.name || req.user.email,
-        trip.toObject()
-      );
-      
+    // Send confirmation email asynchronously (do not await to prevent blocking the HTTP response)
+    sendTripConfirmation(
+      req.user.email,
+      req.user.name || req.user.email,
+      trip.toObject()
+    ).then((emailResult) => {
       if (emailResult.success) {
         console.log(`Trip confirmation email sent for trip ${trip._id}`);
       } else {
         console.warn(`Failed to send trip confirmation email for trip ${trip._id}: ${emailResult.error}`);
       }
-    } catch (emailError) {
-      // Don't fail the trip creation if email fails
+    }).catch((emailError) => {
       console.error(`Error sending trip confirmation email for trip ${trip._id}:`, emailError);
-    }
+    });
 
     res.status(201).json({
       success: true,

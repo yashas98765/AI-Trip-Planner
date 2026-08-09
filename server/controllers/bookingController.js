@@ -45,23 +45,20 @@ const createBooking = async (req, res) => {
 
     logger.info(`New booking created: ${booking.bookingReference} by user ${req.user._id}`);
 
-    // Send confirmation email
-    try {
-      const emailResult = await sendBookingConfirmation(
-        req.user.email,
-        req.user.name || req.user.email,
-        booking.toObject()
-      );
-      
+    // Send confirmation email asynchronously (do not await to prevent blocking the HTTP response)
+    sendBookingConfirmation(
+      req.user.email,
+      req.user.name || req.user.email,
+      booking.toObject()
+    ).then((emailResult) => {
       if (emailResult.success) {
         logger.info(`Confirmation email sent for booking ${booking.bookingReference}`);
       } else {
         logger.warn(`Failed to send confirmation email for booking ${booking.bookingReference}: ${emailResult.error}`);
       }
-    } catch (emailError) {
-      // Don't fail the booking if email fails
+    }).catch((emailError) => {
       logger.error(`Error sending confirmation email for booking ${booking.bookingReference}:`, emailError);
-    }
+    });
 
     res.status(201).json({
       success: true,

@@ -547,7 +547,12 @@ async function generateTripInvoice(trip, userName, userEmail) {
       doc.on('error', reject);
 
       const tripTitle = trip.title || 'Trip Plan';
-      const destination = trip.destination || 'Multiple Destinations';
+      const destinationObj = trip.destination;
+      const destination = destinationObj
+        ? (typeof destinationObj === 'object'
+          ? `${destinationObj.city || ''}, ${destinationObj.country || ''}`.trim().replace(/^,\s*|,\s*$/, '')
+          : destinationObj)
+        : 'Multiple Destinations';
       const budget = trip.budget || 0;
       const tripId = trip._id || 'N/A';
 
@@ -722,7 +727,12 @@ async function generateTripReceipt(trip, userName, userEmail) {
       doc.on('error', reject);
 
       const tripTitle = trip.title || 'Trip Plan';
-      const destination = trip.destination || 'Multiple Destinations';
+      const destinationObj = trip.destination;
+      const destination = destinationObj
+        ? (typeof destinationObj === 'object'
+          ? `${destinationObj.city || ''}, ${destinationObj.country || ''}`.trim().replace(/^,\s*|,\s*$/, '')
+          : destinationObj)
+        : 'Multiple Destinations';
       const tripId = trip._id || 'N/A';
 
       // Header

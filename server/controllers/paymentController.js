@@ -158,7 +158,7 @@ const verifyPayment = async (req, res) => {
         ).populate('user', 'name email');
 
         if (booking) {
-          // Send confirmation email with PDF receipt
+          // Send confirmation email with PDF receipt asynchronously (do not await to prevent blocking the HTTP response)
           try {
             const user = booking.user;
             const pdfBuffer = await generateBookingReceipt(
@@ -167,16 +167,18 @@ const verifyPayment = async (req, res) => {
               user.email
             );
 
-            await sendPaymentReceipt(
+            sendPaymentReceipt(
               user.email,
               user.name,
               booking.toObject(),
               pdfBuffer
-            );
-
-            logger.info(`Payment receipt sent for booking ${booking.bookingReference}`);
-          } catch (emailError) {
-            logger.error('Error sending payment receipt:', emailError);
+            ).then(() => {
+              logger.info(`Payment receipt sent for booking ${booking.bookingReference}`);
+            }).catch((emailError) => {
+              logger.error('Error sending payment receipt in background:', emailError);
+            });
+          } catch (pdfError) {
+            logger.error('Error generating PDF receipt:', pdfError);
           }
         }
       }

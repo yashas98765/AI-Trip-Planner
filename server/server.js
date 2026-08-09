@@ -22,11 +22,20 @@ const {
 const app = express();
 const server = http.createServer(app);
 
+// Build allowed origins list from environment
+const getAllowedOrigins = () => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
+  }
+  return ["http://localhost:3000", "http://127.0.0.1:3000"];
+};
+
 // Initialize Socket.IO
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: getAllowedOrigins(),
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -68,19 +77,14 @@ const activityRoutes = require("./routes/activity");
 
 // Enhanced CORS configuration
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  origin: getAllowedOrigins(),
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   optionsSuccessStatus: 200,
 };
 
-if (process.env.NODE_ENV === "production" && process.env.ALLOWED_ORIGINS) {
-  corsOptions.origin = process.env.ALLOWED_ORIGINS.split(",").map((origin) =>
-    origin.trim()
-  );
-  console.log("Allowed Origins:", corsOptions.origin);
-}
+console.log("Allowed Origins:", corsOptions.origin);
 
 app.use(cors(corsOptions));
 

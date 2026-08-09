@@ -68,7 +68,7 @@ services:
         destination: /index.html
     envVars:
       - key: REACT_APP_API_URL
-        sync: false
+        value: https://ai-trip-planner-api-7fdn.onrender.com/api
       - key: GENERATE_SOURCEMAP
         value: false
       - key: DISABLE_ESLINT_PLUGIN

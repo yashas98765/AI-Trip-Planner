@@ -1041,7 +1041,7 @@ Keep responses conversational, enthusiastic, and informative. Use emojis to make
     conversationContext += `User: ${message}\nAssistant: `;
 
     // Get AI model
-    const chatModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const chatModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Generate response with 20s timeout
     const result = await withTimeout(

@@ -93,6 +93,10 @@ const createPaymentOrder = async (req, res) => {
       userMessage = 'Payment gateway not fully activated. Please complete Razorpay onboarding.';
     } else if (errDesc?.toLowerCase().includes('key') || errDesc?.toLowerCase().includes('auth')) {
       userMessage = 'Payment gateway authentication failed. Check Razorpay API keys.';
+    } else if (errDesc?.toLowerCase().includes('amount') && errDesc?.toLowerCase().includes('maximum')) {
+      userMessage = 'Amount exceeds the maximum limit allowed by your payment gateway account. Please contact support or split into smaller payments.';
+    } else if (errDesc) {
+      userMessage = `Failed to create payment order: ${errDesc}`;
     }
     res.status(500).json({
       success: false,

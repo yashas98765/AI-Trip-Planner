@@ -20,9 +20,9 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: CLIENT_URL
-        sync: false
+        value: https://ai-trip-planner-frontend-zaxe.onrender.com
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: https://ai-trip-planner-frontend-zaxe.onrender.com
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET

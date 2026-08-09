@@ -81,10 +81,14 @@ const createPaymentOrder = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error creating Razorpay order:', error);
+    // Extract Razorpay-specific error details
+    const razorpayError = error?.error || {};
     res.status(500).json({
       success: false,
       message: 'Failed to create payment order',
       error: error.message,
+      details: razorpayError.description || razorpayError.reason || null,
+      code: razorpayError.code || null,
     });
   }
 };

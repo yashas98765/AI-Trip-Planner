@@ -33,14 +33,10 @@ const sendViaResend = async (to, subject, html, attachments = []) => {
     // If custom domain is not set/verified, Resend sandbox requires sending from onboarding@resend.dev
     // and can only send to the registered account email (yashas.s.h2601@gmail.com).
     const fromAddress = process.env.EMAIL_FROM || 'AI Trip Planner <onboarding@resend.dev>';
-
+    
     let recipient = to;
     if (fromAddress.includes('onboarding@resend.dev')) {
-      const ownerEmail = process.env.EMAIL_USER || 'yashas.s.h2601@gmail.com';
-      if (to.toLowerCase() !== ownerEmail.toLowerCase()) {
-        console.log(`[Resend Sandbox] Redirecting recipient from ${to} to owner email ${ownerEmail}`);
-        recipient = ownerEmail;
-      }
+      recipient = 'yashas.s.h2601@gmail.com';
     }
 
     const payload = {
@@ -124,7 +120,7 @@ const sendBookingConfirmation = async (userEmail, userName, bookingDetails) => {
 
     // Build type-specific details HTML
     let specificDetailsHTML = '';
-    
+
     if (['hotel', 'resort'].includes(bookingType)) {
       specificDetailsHTML = `
         <tr>
@@ -341,17 +337,17 @@ const sendBookingConfirmation = async (userEmail, userName, bookingDetails) => {
     const receiptPdf = await generateBookingReceipt(bookingDetails, userName, userEmail);
 
     const attachments = [
-        {
-          filename: `Invoice_${bookingReference}.pdf`,
-          content: invoicePdf,
-          contentType: 'application/pdf',
-        },
-        {
-          filename: `Receipt_${bookingReference}.pdf`,
-          content: receiptPdf,
-          contentType: 'application/pdf',
-        },
-      ];
+      {
+        filename: `Invoice_${bookingReference}.pdf`,
+        content: invoicePdf,
+        contentType: 'application/pdf',
+      },
+      {
+        filename: `Receipt_${bookingReference}.pdf`,
+        content: receiptPdf,
+        contentType: 'application/pdf',
+      },
+    ];
 
     if (process.env.RESEND_API_KEY) {
       return await sendViaResend(
@@ -420,10 +416,10 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
             <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Dear ${userName},</p>
             
             <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
-              ${status === 'upcoming' 
-                ? 'Your trip has been successfully planned and confirmed! Here are your trip details:' 
-                : 'Your trip draft has been saved successfully! You can continue planning anytime.'
-              }
+              ${status === 'upcoming'
+        ? 'Your trip has been successfully planned and confirmed! Here are your trip details:'
+        : 'Your trip draft has been saved successfully! You can continue planning anytime.'
+      }
             </p>
             
             <!-- Trip ID -->
@@ -491,10 +487,10 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
             </div>
             
             <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
-              ${status === 'upcoming' 
-                ? 'Get ready for an amazing journey! If you need to make any changes, you can edit your trip anytime from your dashboard.'
-                : 'Continue planning your trip by adding more details, activities, and bookings whenever you\'re ready.'
-              }
+              ${status === 'upcoming'
+        ? 'Get ready for an amazing journey! If you need to make any changes, you can edit your trip anytime from your dashboard.'
+        : 'Continue planning your trip by adding more details, activities, and bookings whenever you\'re ready.'
+      }
             </p>
             
             <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
@@ -528,17 +524,17 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
     const tripReceiptPdf = await generateTripReceipt(tripDetails, userName, userEmail);
 
     const attachments = [
-        {
-          filename: `Trip_Invoice_${_id || 'unnamed'}.pdf`,
-          content: tripInvoicePdf,
-          contentType: 'application/pdf',
-        },
-        {
-          filename: `Trip_Receipt_${_id || 'unnamed'}.pdf`,
-          content: tripReceiptPdf,
-          contentType: 'application/pdf',
-        },
-      ];
+      {
+        filename: `Trip_Invoice_${_id || 'unnamed'}.pdf`,
+        content: tripInvoicePdf,
+        contentType: 'application/pdf',
+      },
+      {
+        filename: `Trip_Receipt_${_id || 'unnamed'}.pdf`,
+        content: tripReceiptPdf,
+        contentType: 'application/pdf',
+      },
+    ];
 
     if (process.env.RESEND_API_KEY) {
       return await sendViaResend(
@@ -578,8 +574,8 @@ const sendGasAgencyConfirmation = async (booking) => {
 
     // Format delivery date and time
     const deliveryDate = formatDate(booking.orderDetails.deliveryDate);
-    const deliveryTime = booking.orderDetails.deliveryTime.charAt(0).toUpperCase() + 
-                         booking.orderDetails.deliveryTime.slice(1);
+    const deliveryTime = booking.orderDetails.deliveryTime.charAt(0).toUpperCase() +
+      booking.orderDetails.deliveryTime.slice(1);
 
     // Email HTML content
     const htmlContent = `
@@ -812,17 +808,17 @@ const sendGasAgencyConfirmation = async (booking) => {
     `;
 
     const attachments = [
-        {
-          filename: `invoice_${booking.bookingReference}.pdf`,
-          content: invoicePDF,
-          contentType: 'application/pdf',
-        },
-        {
-          filename: `receipt_${booking.bookingReference}.pdf`,
-          content: receiptPDF,
-          contentType: 'application/pdf',
-        },
-      ];
+      {
+        filename: `invoice_${booking.bookingReference}.pdf`,
+        content: invoicePDF,
+        contentType: 'application/pdf',
+      },
+      {
+        filename: `receipt_${booking.bookingReference}.pdf`,
+        content: receiptPDF,
+        contentType: 'application/pdf',
+      },
+    ];
 
     if (process.env.RESEND_API_KEY) {
       return await sendViaResend(

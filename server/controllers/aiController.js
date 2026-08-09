@@ -5,7 +5,8 @@ const { logger } = require("../middleware/logging");
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
 
 // Prevent slow AI calls from blocking the UX for too long.
 const withTimeout = (promise, timeoutMs, label = "Operation") => {

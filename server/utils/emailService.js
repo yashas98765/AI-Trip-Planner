@@ -20,6 +20,16 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Build a safe FROM address
+const getSafeFromAddress = () => {
+  const emailUser = process.env.EMAIL_USER || 'noreply@aitripplanner.com';
+  const fromEnv = process.env.EMAIL_FROM || '';
+  // If EMAIL_FROM already contains angle brackets or is a full address, use as-is
+  if (fromEnv.includes('@')) return fromEnv;
+  // Otherwise build it: "AI Trip Planner <email>"
+  return `AI Trip Planner <${emailUser}>`;
+};
+
 // Helper to send email via Resend HTTP API
 const sendViaResend = async (to, subject, html, attachments = []) => {
   try {
@@ -359,13 +369,14 @@ const sendBookingConfirmation = async (userEmail, userName, bookingDetails) => {
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'AI Trip Planner <noreply@aitripplanner.com>',
+      from: getSafeFromAddress(),
       to: userEmail,
       subject: `🎉 Booking Confirmed - ${bookingReference} - ${details?.name || bookingType.toUpperCase()}`,
       html: htmlContent,
       attachments: attachments,
     };
 
+    console.log(`Sending booking email via SMTP to: ${userEmail}, from: ${mailOptions.from}`);
     const info = await transporter.sendMail(mailOptions);
     console.log('Booking confirmation email sent with attachments:', info.messageId);
     return { success: true, messageId: info.messageId };
@@ -546,13 +557,14 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'AI Trip Planner <noreply@aitripplanner.com>',
+      from: getSafeFromAddress(),
       to: userEmail,
       subject: `✈️ Trip ${status === 'upcoming' ? 'Confirmed' : 'Saved'} - ${title} - AI Trip Planner`,
       html: htmlContent,
       attachments: attachments,
     };
 
+    console.log(`Sending trip email via SMTP to: ${userEmail}, from: ${mailOptions.from}`);
     const info = await transporter.sendMail(mailOptions);
     console.log('Trip confirmation email sent with attachments:', info.messageId);
     return { success: true, messageId: info.messageId };

@@ -283,7 +283,7 @@ const connectDB = async () => {
     });
   } catch (error) {
     logger.error("MongoDB connection failed:", error);
-    process.exit(1);
+    throw error;
   }
 };
 

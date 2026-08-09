@@ -11,8 +11,8 @@ class TokenManager {
   constructor() {
     this.accessTokenSecret = process.env.JWT_ACCESS_SECRET;
     this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET;
-    this.accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "15m";
-    this.refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || "7d";
+    this.accessTokenExpiry = process.env.JWT_ACCESS_EXPIRY || "15m";
+    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRY || "7d";
 
     if (!this.accessTokenSecret || !this.refreshTokenSecret) {
       throw new Error("JWT secrets not configured properly");

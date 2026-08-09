@@ -80,14 +80,26 @@ const createPaymentOrder = async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error('Error creating Razorpay order:', error);
-    // Extract Razorpay-specific error details
+    // Log full error for debugging
+    logger.error('Error creating Razorpay order:', {
+      message: error.message,
+      statusCode: error.statusCode,
+      razorpayError: error.error || error,
+    });
     const razorpayError = error?.error || {};
+    const errDesc = razorpayError.description || razorpayError.reason || error.message;
+    // Friendly message for common issues
+    let userMessage = 'Failed to create payment order';
+    if (errDesc?.toLowerCase().includes('not activat') || errDesc?.toLowerCase().includes('onboard')) {
+      userMessage = 'Payment gateway not fully activated. Please complete Razorpay onboarding.';
+    } else if (errDesc?.toLowerCase().includes('key') || errDesc?.toLowerCase().includes('auth')) {
+      userMessage = 'Payment gateway authentication failed. Check Razorpay API keys.';
+    }
     res.status(500).json({
       success: false,
-      message: 'Failed to create payment order',
+      message: userMessage,
       error: error.message,
-      details: razorpayError.description || razorpayError.reason || null,
+      details: errDesc,
       code: razorpayError.code || null,
     });
   }

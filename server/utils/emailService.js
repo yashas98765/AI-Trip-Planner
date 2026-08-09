@@ -34,9 +34,18 @@ const sendViaResend = async (to, subject, html, attachments = []) => {
     // and can only send to the registered account email (yashas.s.h2601@gmail.com).
     const fromAddress = process.env.EMAIL_FROM || 'AI Trip Planner <onboarding@resend.dev>';
 
+    let recipient = to;
+    if (fromAddress.includes('onboarding@resend.dev')) {
+      const ownerEmail = process.env.EMAIL_USER || 'yashas.s.h2601@gmail.com';
+      if (to.toLowerCase() !== ownerEmail.toLowerCase()) {
+        console.log(`[Resend Sandbox] Redirecting recipient from ${to} to owner email ${ownerEmail}`);
+        recipient = ownerEmail;
+      }
+    }
+
     const payload = {
       from: fromAddress,
-      to: [to],
+      to: [recipient],
       subject: subject,
       html: html,
     };

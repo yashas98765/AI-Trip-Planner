@@ -50,7 +50,6 @@ const createPaymentOrder = async (req, res) => {
       amount: Math.round(amount * 100), // Razorpay expects amount in paise
       currency,
       receipt: receipt || `receipt_${Date.now()}`,
-      payment_capture: 1, // Auto capture payment
     };
 
     // Create order with 15s timeout to prevent hanging

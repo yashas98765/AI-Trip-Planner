@@ -5,7 +5,7 @@ const { logger } = require("../middleware/logging");
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 // Prevent slow AI calls from blocking the UX for too long.
 const withTimeout = (promise, timeoutMs, label = "Operation") => {
@@ -1041,7 +1041,7 @@ Keep responses conversational, enthusiastic, and informative. Use emojis to make
     conversationContext += `User: ${message}\nAssistant: `;
 
     // Get AI model
-    const chatModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const chatModel = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     // Generate response with 20s timeout
     const result = await withTimeout(

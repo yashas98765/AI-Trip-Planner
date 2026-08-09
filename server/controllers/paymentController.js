@@ -53,7 +53,12 @@ const createPaymentOrder = async (req, res) => {
       payment_capture: 1, // Auto capture payment
     };
 
-    const order = await client.orders.create(options);
+    // Create order with 15s timeout to prevent hanging
+    const orderPromise = client.orders.create(options);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Razorpay API timeout - please try again')), 15000)
+    );
+    const order = await Promise.race([orderPromise, timeoutPromise]);
 
     // If bookingId is provided, update booking with order ID
     if (bookingId) {

@@ -60,7 +60,8 @@ const ChatBot = () => {
     setShowSuggestions(false); // Hide suggestions after first message
 
     try {
-      const response = await fetch('/api/ai/chat', {
+      const apiBase = process.env.REACT_APP_API_URL || '/api';
+      const response = await fetch(`${apiBase}/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

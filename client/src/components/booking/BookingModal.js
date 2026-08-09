@@ -585,7 +585,7 @@ const BookingModal = ({ isOpen, onClose, bookingType, placeDetails = {}, default
         amount: pricing.totalPrice,
         currency: 'INR',
         receipt: `booking_${Date.now()}`,
-      });
+      }, { timeout: 30000 });
 
       const orderData = orderResponse.data?.data;
       if (!orderResponse.data?.success || !orderData?.orderId || !orderData?.key) {

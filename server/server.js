@@ -377,4 +377,23 @@ startServer().catch((error) => {
   process.exit(1);
 });
 
+// Keep-alive ping to prevent Render free tier from sleeping
+// Render sleeps services after 15 min of inactivity — ping every 14 min
+if (process.env.NODE_ENV === "production") {
+  const BACKEND_URL = process.env.RENDER_EXTERNAL_URL ||
+    `https://ai-trip-planner-api-7fdn.onrender.com`;
+  setInterval(async () => {
+    try {
+      const http = require("https");
+      http.get(`${BACKEND_URL}/api/health`, (res) => {
+        logger.info(`Keep-alive ping: ${res.statusCode}`);
+      }).on("error", (err) => {
+        logger.warn(`Keep-alive ping failed: ${err.message}`);
+      });
+    } catch (e) {
+      // silently ignore
+    }
+  }, 14 * 60 * 1000); // every 14 minutes
+}
+
 module.exports = app;

@@ -188,8 +188,8 @@ export const reviewAPI = {
 
 // Payment API calls
 export const paymentAPI = {
-  createOrder: (paymentData) => api.post("/payments/create-order", paymentData),
-  verifyPayment: (verificationData) => api.post("/payments/verify", verificationData),
+  createOrder: (paymentData, config = {}) => api.post("/payments/create-order", paymentData, config),
+  verifyPayment: (verificationData, config = {}) => api.post("/payments/verify", verificationData, config),
   getPaymentDetails: (paymentId) => api.get(`/payments/${paymentId}`),
   initiateRefund: (refundData) => api.post("/payments/refund", refundData),
 };

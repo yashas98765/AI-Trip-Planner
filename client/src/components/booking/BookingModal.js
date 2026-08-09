@@ -700,8 +700,11 @@ const BookingModal = ({ isOpen, onClose, bookingType, placeDetails = {}, default
         razorpay.open();
       });
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Payment failed. Please try again.';
-      toast.error(errorMessage, { duration: 6000 });
+      const errData = error.response?.data;
+      const errorMessage = errData?.details
+        ? `${errData.message}: ${errData.details}`
+        : (errData?.message || error.message || 'Payment failed. Please try again.');
+      toast.error(errorMessage, { duration: 8000 });
     } finally {
       setProcessingPayment(false);
     }

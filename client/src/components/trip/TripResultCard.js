@@ -33,8 +33,8 @@ const TripResultCard = ({ itinerary, formValues, onViewDetails }) => {
   };
 
   const buildTripData = () => {
-    const destinationStr = itinerary.destination || formValues.destination;
-    const destParts = destinationStr.split(",").map((s) => s.trim());
+    const destinationStr = itinerary.destination || formValues.destination || "Unknown";
+    const destParts = destinationStr.split(",").map((s) => s.trim()).filter(Boolean);
     const city = destParts[0] || destinationStr;
     const country = destParts[1] || destParts[0] || destinationStr;
 
@@ -154,7 +154,18 @@ const TripResultCard = ({ itinerary, formValues, onViewDetails }) => {
           max: itinerary.totalEstimatedCost?.amount || 0,
           currency: itinerary.totalEstimatedCost?.currency || "INR",
         },
-        duration: parseInt(itinerary.duration) || 1,
+        duration: (() => {
+          const fromItinerary = parseInt(itinerary.duration);
+          if (fromItinerary > 0) return fromItinerary;
+          if (formValues.startDate && formValues.endDate) {
+            const diff = Math.ceil(
+              (new Date(formValues.endDate) - new Date(formValues.startDate)) / (1000 * 60 * 60 * 24)
+            );
+            if (diff > 0) return diff;
+          }
+          if (itinerary.itinerary?.length > 0) return itinerary.itinerary.length;
+          return 1;
+        })(),
         travelStyle: travelStyle,
         groupSize: parseInt(formValues.travelers) || 1,
         interests: interests,

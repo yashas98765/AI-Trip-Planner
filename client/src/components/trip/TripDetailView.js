@@ -65,10 +65,12 @@ const TripDetailView = ({ itinerary, formValues, onClose }) => {
   };
 
   const buildTripData = () => {
-    const destinationStr = itinerary.destination || formValues.destination;
-    const destParts = destinationStr.split(",").map((s) => s.trim());
+    const destinationStr = itinerary.destination || formValues.destination || "Unknown";
+    const destParts = destinationStr.split(",").map((s) => s.trim()).filter(Boolean);
     const city = destParts[0] || destinationStr;
+    // If no country part (single-word destination), use city name as country too
     const country = destParts[1] || destParts[0] || destinationStr;
+
 
     const validActivityTypes = [
       "attraction",
@@ -186,7 +188,21 @@ const TripDetailView = ({ itinerary, formValues, onClose }) => {
           max: itinerary.totalEstimatedCost?.amount || 0,
           currency: itinerary.totalEstimatedCost?.currency || "INR",
         },
-        duration: parseInt(itinerary.duration) || 1,
+        duration: (() => {
+          // Try itinerary.duration first (could be "5" or "5 days" or 5)
+          const fromItinerary = parseInt(itinerary.duration);
+          if (fromItinerary > 0) return fromItinerary;
+          // Fallback: calculate from start/end dates
+          if (formValues.startDate && formValues.endDate) {
+            const diff = Math.ceil(
+              (new Date(formValues.endDate) - new Date(formValues.startDate)) / (1000 * 60 * 60 * 24)
+            );
+            if (diff > 0) return diff;
+          }
+          // Fallback: use number of itinerary days
+          if (itinerary.itinerary?.length > 0) return itinerary.itinerary.length;
+          return 1;
+        })(),
         travelStyle: travelStyle,
         groupSize: parseInt(formValues.travelers) || 1,
         interests: interests,

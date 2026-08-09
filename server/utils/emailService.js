@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 const {
   generateBookingInvoice,
   generateBookingReceipt,
@@ -18,6 +19,52 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
+// Helper to send email via Resend HTTP API
+const sendViaResend = async (to, subject, html, attachments = []) => {
+  try {
+    const resendAttachments = attachments.map((att) => ({
+      filename: att.filename,
+      content: Buffer.isBuffer(att.content)
+        ? att.content.toString('base64')
+        : Buffer.from(att.content).toString('base64'),
+    }));
+
+    // If custom domain is not set/verified, Resend sandbox requires sending from onboarding@resend.dev
+    // and can only send to the registered account email (yashas.s.h2601@gmail.com).
+    const fromAddress = process.env.EMAIL_FROM || 'AI Trip Planner <onboarding@resend.dev>';
+
+    const payload = {
+      from: fromAddress,
+      to: [to],
+      subject: subject,
+      html: html,
+    };
+
+    if (resendAttachments.length > 0) {
+      payload.attachments = resendAttachments;
+    }
+
+    console.log('Sending email via Resend HTTP API to:', to);
+    const response = await axios.post(
+      'https://api.resend.com/emails',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Resend API response:', response.data);
+    return { success: true, messageId: response.data.id };
+  } catch (error) {
+    const apiError = error.response?.data?.message || error.response?.data || error.message;
+    console.error('Error sending via Resend HTTP API:', apiError);
+    return { success: false, error: JSON.stringify(apiError) };
+  }
+};
 
 // Format date for display
 const formatDate = (date) => {
@@ -284,12 +331,7 @@ const sendBookingConfirmation = async (userEmail, userName, bookingDetails) => {
     const invoicePdf = await generateBookingInvoice(bookingDetails, userName, userEmail);
     const receiptPdf = await generateBookingReceipt(bookingDetails, userName, userEmail);
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'AI Trip Planner <noreply@aitripplanner.com>',
-      to: userEmail,
-      subject: `🎉 Booking Confirmed - ${bookingReference} - ${details?.name || bookingType.toUpperCase()}`,
-      html: htmlContent,
-      attachments: [
+    const attachments = [
         {
           filename: `Invoice_${bookingReference}.pdf`,
           content: invoicePdf,
@@ -300,7 +342,23 @@ const sendBookingConfirmation = async (userEmail, userName, bookingDetails) => {
           content: receiptPdf,
           contentType: 'application/pdf',
         },
-      ],
+      ];
+
+    if (process.env.RESEND_API_KEY) {
+      return await sendViaResend(
+        userEmail,
+        `🎉 Booking Confirmed - ${bookingReference} - ${details?.name || bookingType.toUpperCase()}`,
+        htmlContent,
+        attachments
+      );
+    }
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'AI Trip Planner <noreply@aitripplanner.com>',
+      to: userEmail,
+      subject: `🎉 Booking Confirmed - ${bookingReference} - ${details?.name || bookingType.toUpperCase()}`,
+      html: htmlContent,
+      attachments: attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -460,12 +518,7 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
     const tripInvoicePdf = await generateTripInvoice(tripDetails, userName, userEmail);
     const tripReceiptPdf = await generateTripReceipt(tripDetails, userName, userEmail);
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'AI Trip Planner <noreply@aitripplanner.com>',
-      to: userEmail,
-      subject: `✈️ Trip ${status === 'upcoming' ? 'Confirmed' : 'Saved'} - ${title} - AI Trip Planner`,
-      html: htmlContent,
-      attachments: [
+    const attachments = [
         {
           filename: `Trip_Invoice_${_id || 'unnamed'}.pdf`,
           content: tripInvoicePdf,
@@ -476,7 +529,23 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
           content: tripReceiptPdf,
           contentType: 'application/pdf',
         },
-      ],
+      ];
+
+    if (process.env.RESEND_API_KEY) {
+      return await sendViaResend(
+        userEmail,
+        `✈️ Trip ${status === 'upcoming' ? 'Confirmed' : 'Saved'} - ${title} - AI Trip Planner`,
+        htmlContent,
+        attachments
+      );
+    }
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'AI Trip Planner <noreply@aitripplanner.com>',
+      to: userEmail,
+      subject: `✈️ Trip ${status === 'upcoming' ? 'Confirmed' : 'Saved'} - ${title} - AI Trip Planner`,
+      html: htmlContent,
+      attachments: attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -733,13 +802,7 @@ const sendGasAgencyConfirmation = async (booking) => {
       </html>
     `;
 
-    // Prepare email options
-    const mailOptions = {
-      from: `"Gas Agency" <${process.env.EMAIL_USER || 'noreply@gasagency.com'}>`,
-      to: userEmail,
-      subject: `🔥 Gas Cylinder Booking Confirmed - ${booking.bookingReference}`,
-      html: htmlContent,
-      attachments: [
+    const attachments = [
         {
           filename: `invoice_${booking.bookingReference}.pdf`,
           content: invoicePDF,
@@ -750,7 +813,24 @@ const sendGasAgencyConfirmation = async (booking) => {
           content: receiptPDF,
           contentType: 'application/pdf',
         },
-      ],
+      ];
+
+    if (process.env.RESEND_API_KEY) {
+      return await sendViaResend(
+        userEmail,
+        `🔥 Gas Cylinder Booking Confirmed - ${booking.bookingReference}`,
+        htmlContent,
+        attachments
+      );
+    }
+
+    // Prepare email options
+    const mailOptions = {
+      from: `"Gas Agency" <${process.env.EMAIL_USER || 'noreply@gasagency.com'}>`,
+      to: userEmail,
+      subject: `🔥 Gas Cylinder Booking Confirmed - ${booking.bookingReference}`,
+      html: htmlContent,
+      attachments: attachments,
     };
 
     // Send email
@@ -826,14 +906,25 @@ const sendPaymentReceipt = async (userEmail, userName, booking, receiptPDFBuffer
       </html>
     `;
 
+    const attachments = receiptPDFBuffer
+      ? [{ filename: `receipt_${bookingRef}.pdf`, content: receiptPDFBuffer, contentType: 'application/pdf' }]
+      : [];
+
+    if (process.env.RESEND_API_KEY) {
+      return await sendViaResend(
+        userEmail,
+        `✅ Payment Receipt - Booking ${bookingRef}`,
+        htmlContent,
+        attachments
+      );
+    }
+
     const mailOptions = {
       from: `"AI Trip Planner" <${process.env.EMAIL_USER || 'noreply@aitripplanner.com'}>`,
       to: userEmail,
       subject: `✅ Payment Receipt - Booking ${bookingRef}`,
       html: htmlContent,
-      attachments: receiptPDFBuffer
-        ? [{ filename: `receipt_${bookingRef}.pdf`, content: receiptPDFBuffer, contentType: 'application/pdf' }]
-        : [],
+      attachments: attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);

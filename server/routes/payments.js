@@ -22,6 +22,32 @@ router.get('/test-keys', (req, res) => {
   });
 });
 
+// Public debug endpoint — actually create a ₹1 test order to verify Razorpay works
+router.get('/test-order', async (req, res) => {
+  try {
+    const Razorpay = require('razorpay');
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) {
+      return res.json({ success: false, error: 'Keys not set' });
+    }
+    const client = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    const order = await client.orders.create({
+      amount: 100, // ₹1 in paise
+      currency: 'INR',
+      receipt: `test_${Date.now()}`,
+    });
+    res.json({ success: true, orderId: order.id, amount: order.amount, status: order.status });
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message,
+      statusCode: error.statusCode,
+      razorpayError: error.error || null,
+    });
+  }
+});
+
 // All routes below require authentication
 router.use(protect);
 

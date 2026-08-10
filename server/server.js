@@ -340,8 +340,8 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   // Validate email service configuration
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    logger.warn("⚠️ EMAIL SERVICE WARNING: EMAIL_USER or EMAIL_PASS environment variables are not set. " +
+  if (!process.env.EMAIL_USER || !(process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD)) {
+    logger.warn("⚠️ EMAIL SERVICE WARNING: EMAIL_USER or EMAIL_PASS/EMAIL_PASSWORD environment variables are not set. " +
       "Confirmation emails will fail to send. Please configure them in your .env file or Render Dashboard.");
   }
 

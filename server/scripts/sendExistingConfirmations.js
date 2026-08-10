@@ -12,11 +12,13 @@ const { sendBookingConfirmation, sendTripConfirmation } = require('../utils/emai
 // Add a delay between emails to avoid rate limiting
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function sendExistingTripConfirmations() {
+async function sendExistingTripConfirmations(shouldCloseConn = true, shouldExit = true) {
   try {
-    console.log('🔄 Connecting to database...');
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    if (mongoose.connection.readyState !== 1) {
+      console.log('🔄 Connecting to database...');
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log('✅ Connected to MongoDB\n');
+    }
 
     // Fetch all trips with user information
     console.log('📋 Fetching existing trips...');
@@ -80,17 +82,23 @@ async function sendExistingTripConfirmations() {
   } catch (error) {
     console.error('❌ Error:', error.message);
   } finally {
-    await mongoose.connection.close();
-    console.log('🔌 Database connection closed');
-    process.exit(0);
+    if (shouldCloseConn) {
+      await mongoose.connection.close();
+      console.log('🔌 Database connection closed');
+    }
+    if (shouldExit) {
+      process.exit(0);
+    }
   }
 }
 
-async function sendExistingBookingConfirmations() {
+async function sendExistingBookingConfirmations(shouldCloseConn = true, shouldExit = true) {
   try {
-    console.log('🔄 Connecting to database...');
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB\n');
+    if (mongoose.connection.readyState !== 1) {
+      console.log('🔄 Connecting to database...');
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log('✅ Connected to MongoDB\n');
+    }
 
     // Note: You'll need to create a Booking model if it doesn't exist
     // For now, checking if it exists
@@ -165,9 +173,13 @@ async function sendExistingBookingConfirmations() {
   } catch (error) {
     console.error('❌ Error:', error.message);
   } finally {
-    await mongoose.connection.close();
-    console.log('🔌 Database connection closed');
-    process.exit(0);
+    if (shouldCloseConn) {
+      await mongoose.connection.close();
+      console.log('🔌 Database connection closed');
+    }
+    if (shouldExit) {
+      process.exit(0);
+    }
   }
 }
 
@@ -188,9 +200,14 @@ if (command === 'trips') {
 } else if (command === 'all') {
   console.log('🎯 Mode: Sending all confirmations\n');
   (async () => {
-    await sendExistingBookingConfirmations();
-    console.log('\n' + '─'.repeat(50) + '\n');
-    await sendExistingTripConfirmations();
+    try {
+      await sendExistingBookingConfirmations(false, false);
+      console.log('\n' + '─'.repeat(50) + '\n');
+      await sendExistingTripConfirmations(true, true);
+    } catch (err) {
+      console.error('Error in sending all confirmations:', err);
+      process.exit(1);
+    }
   })();
 } else {
   console.log('Usage: node sendExistingConfirmations.js [trips|bookings|all]\n');

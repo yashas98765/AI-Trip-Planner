@@ -320,10 +320,29 @@ const updateTrip = async (req, res) => {
       }
     }
 
+    const oldStatus = trip.status;
+
     trip = await Trip.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     }).populate("user", "name email avatar");
+
+    // Send confirmation email if status changed to "upcoming"
+    if (trip && trip.status === "upcoming" && oldStatus !== "upcoming") {
+      sendTripConfirmation(
+        req.user.email,
+        req.user.name || req.user.email,
+        trip.toObject()
+      ).then((emailResult) => {
+        if (emailResult.success) {
+          console.log(`Trip confirmation email sent for trip ${trip._id}`);
+        } else {
+          console.warn(`Failed to send trip confirmation email for trip ${trip._id}: ${emailResult.error}`);
+        }
+      }).catch((emailError) => {
+        console.error(`Error sending trip confirmation email for trip ${trip._id}:`, emailError);
+      });
+    }
 
     res.json({
       success: true,
@@ -877,10 +896,28 @@ const updateTripStatus = async (req, res) => {
     }
 
     // Update status
+    const oldStatus = trip.status;
     trip.status = status;
     await trip.save();
 
     await trip.populate("user", "name email avatar");
+
+    // Send confirmation email if status is changed to "upcoming"
+    if (status === "upcoming" && oldStatus !== "upcoming") {
+      sendTripConfirmation(
+        req.user.email,
+        req.user.name || req.user.email,
+        trip.toObject()
+      ).then((emailResult) => {
+        if (emailResult.success) {
+          console.log(`Trip confirmation email sent for trip ${trip._id}`);
+        } else {
+          console.warn(`Failed to send trip confirmation email for trip ${trip._id}: ${emailResult.error}`);
+        }
+      }).catch((emailError) => {
+        console.error(`Error sending trip confirmation email for trip ${trip._id}:`, emailError);
+      });
+    }
 
     res.json({
       success: true,

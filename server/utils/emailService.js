@@ -16,9 +16,14 @@ const transporter = nodemailer.createTransport({
   secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD,
   },
 });
+
+// Helper to check if SMTP is configured
+const isSmtpConfigured = () => {
+  return !!(process.env.EMAIL_USER && (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD));
+};
 
 // Build a safe FROM address
 const getSafeFromAddress = () => {
@@ -359,7 +364,7 @@ const sendBookingConfirmation = async (userEmail, userName, bookingDetails) => {
       },
     ];
 
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.RESEND_API_KEY && !isSmtpConfigured()) {
       return await sendViaResend(
         userEmail,
         `🎉 Booking Confirmed - ${bookingReference} - ${details?.name || bookingType.toUpperCase()}`,
@@ -547,7 +552,7 @@ const sendTripConfirmation = async (userEmail, userName, tripDetails) => {
       },
     ];
 
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.RESEND_API_KEY && !isSmtpConfigured()) {
       return await sendViaResend(
         userEmail,
         `✈️ Trip ${status === 'upcoming' ? 'Confirmed' : 'Saved'} - ${title} - AI Trip Planner`,
@@ -832,7 +837,7 @@ const sendGasAgencyConfirmation = async (booking) => {
       },
     ];
 
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.RESEND_API_KEY && !isSmtpConfigured()) {
       return await sendViaResend(
         userEmail,
         `🔥 Gas Cylinder Booking Confirmed - ${booking.bookingReference}`,
@@ -927,7 +932,7 @@ const sendPaymentReceipt = async (userEmail, userName, booking, receiptPDFBuffer
       ? [{ filename: `receipt_${bookingRef}.pdf`, content: receiptPDFBuffer, contentType: 'application/pdf' }]
       : [];
 
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.RESEND_API_KEY && !isSmtpConfigured()) {
       return await sendViaResend(
         userEmail,
         `✅ Payment Receipt - Booking ${bookingRef}`,

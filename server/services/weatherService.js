@@ -20,6 +20,10 @@ class WeatherService {
           current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
           timezone: "auto",
         },
+        headers: {
+          "User-Agent": "AI-TripPlanner/1.0 (Educational Project; Node.js Application)",
+          "Accept": "application/json"
+        },
         timeout: 10000,
       });
 
@@ -37,7 +41,7 @@ class WeatherService {
       };
     } catch (error) {
       logger.error("Weather fetch error:", error.message);
-      throw new Error("Failed to fetch current weather");
+      throw new Error(`Failed to fetch current weather: ${error.message}`);
     }
   }
 
@@ -58,6 +62,10 @@ class WeatherService {
           daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max,uv_index_max,sunrise,sunset",
           timezone: "auto",
           forecast_days: forecastDays,
+        },
+        headers: {
+          "User-Agent": "AI-TripPlanner/1.0 (Educational Project; Node.js Application)",
+          "Accept": "application/json"
         },
         timeout: 10000,
       });
@@ -92,7 +100,7 @@ class WeatherService {
       return forecast;
     } catch (error) {
       logger.error("Weather forecast error:", error.message);
-      throw new Error("Failed to fetch weather forecast");
+      throw new Error(`Failed to fetch weather forecast: ${error.message}`);
     }
   }
 
@@ -116,6 +124,10 @@ class WeatherService {
           daily: "temperature_2m_max,temperature_2m_min,precipitation_sum",
           timezone: "auto",
           forecast_days: 16, // Get base reference
+        },
+        headers: {
+          "User-Agent": "AI-TripPlanner/1.0 (Educational Project; Node.js Application)",
+          "Accept": "application/json"
         },
         timeout: 10000,
       });

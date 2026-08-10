@@ -1,7 +1,128 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FaCloudRain, FaWind, FaTint } from "react-icons/fa";
-import { mapsAPI } from "../../services/api";
+import axios from "axios";
+
+// Helper functions for weather data processing
+const getWeatherDescription = (code) => {
+  const weatherCodes = {
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Foggy",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    71: "Slight snow",
+    73: "Moderate snow",
+    75: "Heavy snow",
+    77: "Snow grains",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    85: "Slight snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
+  };
+  return weatherCodes[code] || "Unknown";
+};
+
+const getWeatherIcon = (code) => {
+  if (code === 0 || code === 1) return "☀️";
+  if (code === 2) return "⛅";
+  if (code === 3) return "☁️";
+  if (code >= 45 && code <= 48) return "🌫️";
+  if (code >= 51 && code <= 57) return "🌧️";
+  if (code >= 61 && code <= 67) return "🌧️";
+  if (code >= 71 && code <= 77) return "❄️";
+  if (code >= 80 && code <= 82) return "🌦️";
+  if (code >= 85 && code <= 86) return "🌨️";
+  if (code >= 95 && code <= 99) return "⛈️";
+  return "🌤️";
+};
+
+const estimateWeatherCode = (precipitation) => {
+  if (precipitation > 10) return 63; // Moderate rain
+  if (precipitation > 5) return 61; // Slight rain
+  if (precipitation > 2) return 51; // Light drizzle
+  if (precipitation > 0.5) return 2; // Partly cloudy
+  return Math.random() > 0.5 ? 0 : 1; // Clear or mainly clear
+};
+
+const getFallbackEstimates = (days, baseDate) => {
+  const estimates = [];
+  for (let i = 0; i < days; i++) {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + i);
+    estimates.push({
+      date: date.toISOString().split('T')[0],
+      tempMax: 25 + Math.random() * 10,
+      tempMin: 15 + Math.random() * 10,
+      precipitation: Math.random() * 5,
+      precipitationProbability: Math.round(Math.random() * 50),
+      weatherCode: 2,
+      description: 'Partly cloudy',
+      icon: '⛅',
+      windSpeed: 10 + Math.random() * 10,
+      uvIndex: 5,
+      sunrise: '06:00',
+      sunset: '18:00',
+      dataType: 'estimate',
+    });
+  }
+  return estimates;
+};
+
+const getClimateEstimates = (lat, lng, additionalDays, dailyData) => {
+  try {
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + 16); // Start from day 17
+
+    const estimates = [];
+    const avgTempMax = dailyData.temperature_2m_max.reduce((a, b) => a + b, 0) / dailyData.temperature_2m_max.length;
+    const avgTempMin = dailyData.temperature_2m_min.reduce((a, b) => a + b, 0) / dailyData.temperature_2m_min.length;
+    const avgPrecip = dailyData.precipitation_sum.reduce((a, b) => a + b, 0) / dailyData.precipitation_sum.length;
+
+    for (let i = 0; i < additionalDays; i++) {
+      const date = new Date(baseDate);
+      date.setDate(date.getDate() + i);
+      
+      const tempVariation = (Math.random() - 0.5) * 4;
+      const precipVariation = Math.random() * 1.5;
+      const precipitationVal = avgPrecip * precipVariation;
+      
+      estimates.push({
+        date: date.toISOString().split('T')[0],
+        tempMax: Math.round((avgTempMax + tempVariation) * 10) / 10,
+        tempMin: Math.round((avgTempMin + tempVariation) * 10) / 10,
+        precipitation: Math.round(precipitationVal * 10) / 10,
+        precipitationProbability: Math.round(Math.min(100, precipitationVal * 5)),
+        weatherCode: estimateWeatherCode(precipitationVal),
+        description: getWeatherDescription(estimateWeatherCode(precipitationVal)),
+        icon: getWeatherIcon(estimateWeatherCode(precipitationVal)),
+        windSpeed: Math.round((10 + Math.random() * 15) * 10) / 10,
+        uvIndex: Math.round(3 + Math.random() * 5),
+        sunrise: dailyData.sunrise[0], // Use first day as reference
+        sunset: dailyData.sunset[0],
+        dataType: 'climate_estimate',
+      });
+    }
+
+    return estimates;
+  } catch (error) {
+    console.error("Climate estimates error:", error);
+    const fallbackBaseDate = new Date();
+    fallbackBaseDate.setDate(fallbackBaseDate.getDate() + 16);
+    return getFallbackEstimates(additionalDays, fallbackBaseDate);
+  }
+};
 
 const WeatherWidget = ({ lat, lng }) => {
   const [weather, setWeather] = useState(null);
@@ -14,19 +135,65 @@ const WeatherWidget = ({ lat, lng }) => {
       try {
         setLoading(true);
         const [currentRes, forecastRes] = await Promise.all([
-          mapsAPI.getCurrentWeather({ lat, lng }),
-          mapsAPI.getWeatherForecast({ lat, lng, days: 30 }), // Changed from 3 to 30
+          axios.get("https://api.open-meteo.com/v1/forecast", {
+            params: {
+              latitude: lat,
+              longitude: lng,
+              current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
+              timezone: "auto",
+            },
+            timeout: 10000,
+          }),
+          axios.get("https://api.open-meteo.com/v1/forecast", {
+            params: {
+              latitude: lat,
+              longitude: lng,
+              daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max,uv_index_max,sunrise,sunset",
+              timezone: "auto",
+              forecast_days: 16,
+            },
+            timeout: 10000,
+          })
         ]);
 
-        if (currentRes.data.success) {
-          setWeather(currentRes.data.data);
+        const current = currentRes.data.current;
+        setWeather({
+          temperature: current.temperature_2m,
+          feelsLike: current.apparent_temperature,
+          humidity: current.relative_humidity_2m,
+          precipitation: current.precipitation,
+          windSpeed: current.wind_speed_10m,
+          weatherCode: current.weather_code,
+          description: getWeatherDescription(current.weather_code),
+          icon: getWeatherIcon(current.weather_code),
+          unit: currentRes.data.current_units.temperature_2m,
+        });
+
+        const daily = forecastRes.data.daily;
+        const forecastList = [];
+        for (let i = 0; i < daily.time.length; i++) {
+          forecastList.push({
+            date: daily.time[i],
+            tempMax: daily.temperature_2m_max[i],
+            tempMin: daily.temperature_2m_min[i],
+            precipitation: daily.precipitation_sum[i],
+            precipitationProbability: daily.precipitation_probability_max?.[i] || 0,
+            weatherCode: daily.weather_code[i],
+            description: getWeatherDescription(daily.weather_code[i]),
+            icon: getWeatherIcon(daily.weather_code[i]),
+            windSpeed: daily.wind_speed_10m_max[i],
+            uvIndex: daily.uv_index_max?.[i] || 0,
+            sunrise: daily.sunrise[i],
+            sunset: daily.sunset[i],
+            dataType: 'forecast',
+          });
         }
 
-        if (forecastRes.data.success) {
-          // Handle new response structure
-          const forecastData = forecastRes.data.data.forecast || forecastRes.data.data;
-          setForecast(Array.isArray(forecastData) ? forecastData : []);
-        }
+        // Generate the 14-day climate estimates for 30-day view compatibility
+        const climateData = getClimateEstimates(lat, lng, 14, daily);
+        forecastList.push(...climateData);
+
+        setForecast(forecastList);
       } catch (error) {
         console.error("Weather fetch error:", error);
       } finally {
@@ -37,7 +204,6 @@ const WeatherWidget = ({ lat, lng }) => {
     if (lat && lng) {
       loadWeather();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
 
 

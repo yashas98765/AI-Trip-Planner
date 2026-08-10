@@ -151,6 +151,7 @@ Preferences:
 
 Requirements:
 - Each day must include ${activitiesPerDay} activities.
+- Every day must feature actual, famous tourist spots, beaches, landmarks, monuments, temples, or sightseeing attractions specific to ${destination} (do not generate generic descriptions or generic restaurant-only days).
 - Every activity must include: time (HH:MM), activity, location{name,address,coordinates{lat,lng}}, duration, cost{amount,currency}, description, type, image.
 - Use realistic chronology from morning to night.
 - Use image URLs like: https://source.unsplash.com/800x600/?{keyword1},{keyword2}

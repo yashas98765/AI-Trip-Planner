@@ -1,3 +1,16 @@
+global.debugLogs = [];
+const originalConsoleError = console.error;
+console.error = function(...args) {
+  global.debugLogs.push({
+    timestamp: new Date().toISOString(),
+    message: args.map(arg => typeof arg === 'object' ? (arg.stack || JSON.stringify(arg)) : String(arg)).join(' ')
+  });
+  if (global.debugLogs.length > 200) {
+    global.debugLogs.shift();
+  }
+  originalConsoleError.apply(console, args);
+};
+
 const dns = require("dns");
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder("ipv4first");
@@ -25,6 +38,14 @@ const {
 } = require("./middleware/logging");
 
 const app = express();
+
+app.get("/api/debug-logs", (req, res) => {
+  res.json({
+    success: true,
+    logs: global.debugLogs
+  });
+});
+
 const server = http.createServer(app);
 
 // Build allowed origins list from environment

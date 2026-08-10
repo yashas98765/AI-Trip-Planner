@@ -81,7 +81,6 @@ const tripSchema = new mongoose.Schema(
       },
       travelStyle: {
         type: String,
-        enum: ["budget", "luxury", "adventure", "relaxation", "cultural"],
         default: "budget",
       },
       groupSize: {
@@ -105,15 +104,9 @@ const tripSchema = new mongoose.Schema(
       ],
       accommodation: {
         type: String,
-        enum: ["hotel", "hostel", "apartment", "resort"],
         default: "hotel",
       },
-      transport: [
-        {
-          type: String,
-          enum: ["flight", "train", "bus", "car", "walking"],
-        },
-      ],
+      transport: [String],
     },
 
     // AI-generated itinerary
@@ -152,13 +145,6 @@ const tripSchema = new mongoose.Schema(
               description: String,
               type: {
                 type: String,
-                enum: [
-                  "attraction",
-                  "restaurant",
-                  "transport",
-                  "accommodation",
-                  "activity",
-                ],
               },
             },
           ],

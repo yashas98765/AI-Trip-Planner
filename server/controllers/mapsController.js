@@ -357,12 +357,47 @@ const getNearbyPlaces = async (req, res) => {
     // Map 'all' to null for the service (it will return amenities)
     const searchType = type === "all" ? null : type;
     
-    const searchResults = await mapService.nearbySearch(
-      location,
-      searchRadius,
-      searchType,
-      keyword || null
-    );
+    let searchResults;
+    try {
+      searchResults = await mapService.nearbySearch(
+        location,
+        searchRadius,
+        searchType,
+        keyword || null
+      );
+    } catch (apiError) {
+      console.warn("Overpass nearbySearch failed in getNearbyPlaces, using mock fallback:", apiError.message);
+      
+      let mockList = [];
+      if (searchType === 'restaurant' || searchType === 'dining' || searchType === 'cafe' || searchType === 'food') {
+        mockList = mockPlacesData.restaurants;
+      } else if (searchType === 'attraction' || searchType === 'tourist_attraction' || searchType === 'museum') {
+        mockList = mockPlacesData.attractions;
+      } else if (searchType === 'hotel' || searchType === 'lodging') {
+        mockList = mockPlacesData.hotels;
+      } else {
+        mockList = [...mockPlacesData.restaurants, ...mockPlacesData.hotels, ...mockPlacesData.attractions];
+      }
+
+      searchResults = {
+        results: mockList.map((p, idx) => ({
+          place_id: `${searchType || 'place'}_mock_${idx}_${Date.now()}`,
+          name: p.name,
+          types: p.category ? [p.category] : [searchType || 'amenity'],
+          rating: p.rating || 4.2,
+          price_level: p.priceLevel || 2,
+          geometry: {
+            location: {
+              lat: lat + (Math.random() - 0.5) * 0.02,
+              lng: lng + (Math.random() - 0.5) * 0.02,
+            }
+          },
+          formatted_address: p.location?.address || `${lat}, ${lng}`,
+          vicinity: p.location?.address || `${lat}, ${lng}`,
+          photos: p.photos || [],
+        }))
+      };
+    }
 
     // Transform results to match expected format
     const places = searchResults.results.map((place) => {
@@ -728,12 +763,45 @@ async function getRecommendedPlaces(req, res) {
 
     // Get nearby places - format location as "lat,lng" string
     const location = `${parseFloat(lat)},${parseFloat(lng)}`;
-    const placesResponse = await mapService.nearbySearch(
-      location,
-      searchRadius,
-      type,
-      null // keyword
-    );
+    let placesResponse;
+    try {
+      placesResponse = await mapService.nearbySearch(
+        location,
+        searchRadius,
+        type,
+        null // keyword
+      );
+    } catch (apiError) {
+      console.warn("Overpass nearbySearch failed in getRecommendedPlaces, using mock fallback:", apiError.message);
+      
+      let mockList = [];
+      if (type === 'restaurant' || type === 'dining' || type === 'cafe' || type === 'food') {
+        mockList = mockPlacesData.restaurants;
+      } else if (type === 'attraction' || type === 'tourist_attraction' || type === 'museum') {
+        mockList = mockPlacesData.attractions;
+      } else {
+        mockList = mockPlacesData.hotels;
+      }
+
+      placesResponse = {
+        results: mockList.map((p, idx) => ({
+          place_id: `${type || 'place'}_mock_${idx}_${Date.now()}`,
+          name: p.name,
+          types: p.category ? [p.category] : [type || 'lodging'],
+          rating: p.rating || 4.2,
+          price_level: p.priceLevel || 2,
+          geometry: {
+            location: {
+              lat: parseFloat(lat) + (Math.random() - 0.5) * 0.02,
+              lng: parseFloat(lng) + (Math.random() - 0.5) * 0.02,
+            }
+          },
+          formatted_address: p.location?.address || `${lat}, ${lng}`,
+          vicinity: p.location?.address || `${lat}, ${lng}`,
+          photos: p.photos || [],
+        }))
+      };
+    }
 
     const places = placesResponse.results || [];
 

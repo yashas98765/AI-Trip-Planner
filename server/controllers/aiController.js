@@ -12,6 +12,11 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 const withTimeout = (promise, timeoutMs, label = "Operation") => {
   let timeoutId;
 
+  // Prevent unhandled promise rejection if timeout Promise rejects first
+  if (promise && typeof promise.catch === "function") {
+    promise.catch(() => {});
+  }
+
   const timeoutPromise = new Promise((_, reject) => {
     timeoutId = setTimeout(() => {
       reject(new Error(`${label} timed out after ${timeoutMs}ms`));

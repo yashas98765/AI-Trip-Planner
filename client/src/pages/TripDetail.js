@@ -147,10 +147,14 @@ const TripDetail = () => {
   };
 
   const handleShare = () => {
+    const destName = trip?.destination?.city 
+      ? `${trip.destination.city}, ${trip.destination.country}`
+      : (trip?.destination || "Unknown Destination");
+
     if (navigator.share) {
       navigator.share({
-        title: `Trip to ${trip?.destination}`,
-        text: `Check out my trip to ${trip?.destination}!`,
+        title: `Trip to ${destName}`,
+        text: `Check out my trip to ${destName}!`,
         url: window.location.href,
       });
     } else {
